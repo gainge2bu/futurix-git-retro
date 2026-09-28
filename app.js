@@ -173,7 +173,7 @@ function gateHTML(){
       <i class="hx-bar" aria-hidden="true"></i>
       <p class="hx-sub">적은 의견은 이 이름으로 함께 보여요.</p>
       <form class="gate-form" id="gate-form" autocomplete="off">
-        <input class="field" id="gate-name" data-draft="gate-name" value="${d("gate-name", me.name)}" placeholder="이름을 입력하세요 (예: 구민주)" aria-label="이름" maxlength="20">
+        <input class="field" id="gate-name" data-draft="gate-name" value="${d("gate-name", me.name)}" placeholder="이름을 입력하세요 (예: 김퓨처)" aria-label="이름" maxlength="20">
         <button class="btn primary lg" type="submit">시작하기 <span aria-hidden="true">→</span></button>
       </form>
       ${ROOM!=="main"?`<p class="muted" style="font-size:13px">회고방 · <b>${esc(ROOM)}</b></p>`:""}
@@ -187,7 +187,7 @@ function topHTML(){
   return `<header class="top"><div class="top-row">
     <div class="brand"><span class="wordmark">Futurix</span><b>일잘법 GIT 회고${ROOM!=="main"?` · ${esc(ROOM)}`:""}</b></div>
     ${statusPill()}
-    <div class="team-sel"><span class="muted">작성자</span><b>${esc(me.name)}</b><button class="btn sm ghost" data-act="openGate">이름 바꾸기</button></div>
+    <div class="team-sel"><span class="muted">작성자</span><b>${esc(me.name)}</b></div>
     <button class="btn sm" data-act="copy">결과 복사</button>
   </div>
   <ol class="stepper" aria-label="회고 단계">
@@ -229,7 +229,7 @@ function introHTML(){
         <li><div><b>의견 쓰기</b><span>일잘법을 써보며 느낀 점을 G·I·T 칸에 한 장에 하나씩 적어요. 내 의견은 언제든 수정·삭제할 수 있어요.</span></div></li>
         <li><div><b>투표</b><span>모두의 의견을 함께 보며 비슷한 것끼리 묶고, 좋아요를 누른 뒤 채택할 의견을 최종 확정해요.</span></div></li>
       </ol>
-      <p class="who">작성자 <b>${esc(me.name)}</b><button class="btn sm ghost" data-act="openGate">이름 바꾸기</button></p>
+      <p class="who">작성자 <b>${esc(me.name)}</b></p>
     </div>
   </div>`;
 }
