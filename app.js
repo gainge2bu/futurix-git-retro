@@ -255,13 +255,12 @@ function writeHTML(){
   return head("3단계 · GIT","일잘법을 써보니 어땠나요?","", "일잘법 <b>전체</b>를 떠올리며 G·I·T 칸에 한 카드에 하나씩 적어요. 특정 문장도, 전반적인 이야기도 좋아요.") +
   `<details class="ref" id="fold-git" data-fold="git" ${ui.fold.git?"open":""}><summary><span class="eyebrow">GIT란? · Good · Improvement · Try</span><span class="muted ref-tog"></span></summary>
     <p class="muted" style="margin:-2px 0 12px;font-size:14px">세 가지 질문으로 일잘법을 돌아봐요. 각 칸이 무엇을 뜻하는지 확인한 뒤 아래에 적어주세요.</p>${gitCards()}</details>
-  <details class="ref" id="fold-ref" data-fold="ref" ${ui.fold.ref?"open":""}><summary><span class="eyebrow">돌아볼 대상 · 일하는 9가지 방법</span><span class="muted ref-tog"></span></summary>${habitsGrid()}</details>
   <div class="board">${["G","I","T"].map(col=>{ const C=COLS[col]; const mine=store.cards.filter(c=>c.col===col&&c.authorId===me.id).sort((a,b)=>(b.created||0)-(a.created||0));
     return `<div class="col" data-col="${col}">
       <div class="col-head"><div class="col-title"><span class="col-letter">${col}</span><h3>${C.name} · ${C.ko}</h3></div><p class="col-q">${C.q}</p></div>
       <div class="col-tools">
         <textarea class="field" id="new-${col}" data-draft="new-${col}" rows="2" maxlength="500" placeholder="${C.ph} (Ctrl+Enter로 올리기)">${d("new-"+col)}</textarea>
-        <div class="addrow"><span class="muted" style="font-size:12.5px">예) ${esc(C.ex)}</span><button class="btn primary sm" data-act="addCard" data-col="${col}" style="margin-left:auto;flex:none">올리기</button></div>
+        <div class="addrow"><button class="btn primary sm" data-act="addCard" data-col="${col}" style="margin-left:auto;flex:none">올리기</button></div>
       </div>
       <div class="col-body"><div class="dropzone">${mine.length?mine.map(c=>cardHTML(c,"write")).join(""):`<p class="empty">아직 쓴 의견이 없어요</p>`}</div></div>
     </div>`; }).join("")}</div>
