@@ -25,6 +25,14 @@ service cloud.firestore {
       allow delete: if true;
     }
 
+    match /rooms/{room}/people/{personId} {
+      allow read: if true;
+      allow create, update: if request.resource.data.name is string
+                            && request.resource.data.name.size() > 0
+                            && request.resource.data.name.size() <= 20;
+      allow delete: if false;
+    }
+
     // 그 밖의 경로는 모두 막음
     match /{document=**} {
       allow read, write: if false;

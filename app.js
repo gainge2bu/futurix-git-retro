@@ -12,6 +12,8 @@ const CFG = (window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.apiKey) ? window.F
 const FB_VER = "10.12.2";
 const ROOM = (() => { let r = ""; try { r = decodeURIComponent(location.hash.slice(1)); } catch (e) {} return /^[\p{L}\p{N}_-]{1,40}$/u.test(r) ? r : "main"; })();
 window.addEventListener("hashchange", () => location.reload());
+/* 관리자: 주소에 ?admin=코드 로 들어오면 관리자 모드(이 브라우저에 기억). 코드 원문은 저장소에 없고 해시만 둡니다. */
+const ADMIN_HASH = "8d02ac0ade194fe9fec3b6e9cb046fc125b628bbfdad8efe577e4606579b243e";
 
 /* ---------- 회고 대상: 일하는 9가지 방법 ---------- */
 const MOTTO = "목적은 함께 정하고, 기준은 함께 지키며, 방법은 스스로 선택한다.";
@@ -65,6 +67,17 @@ const me = LS.get("fx-me", null) || {id:"u_"+uid(), name:""};
 LS.set("fx-me", me);
 const prefs = Object.assign({step:0}, LS.get("fx-prefs", {}));
 const savePrefs = () => LS.set("fx-prefs", prefs);
+let isAdmin = LS.get("fx-admin", "") === ADMIN_HASH;
+async function checkAdminParam(){
+  const p=new URLSearchParams(location.search); const code=p.get("admin"); if(code==null) return;
+  p.delete("admin"); history.replaceState(null,"",location.pathname+(p.toString()?"?"+p:"")+location.hash);
+  try{
+    const buf=await crypto.subtle.digest("SHA-256", new TextEncoder().encode(code.trim()));
+    const hex=[...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
+    if(hex===ADMIN_HASH){ isAdmin=true; LS.set("fx-admin",ADMIN_HASH); setTimeout(()=>toast("관리자 모드로 들어왔어요"),300); }
+    else setTimeout(()=>toast("관리자 주소가 올바르지 않아요"),300);
+  }catch(e){ console.error(e); }
+}
 const ui = {fold: Object.assign({git:true, ref:false}, LS.get("fx-fold", {})), draft:{}, editCard:null, voteCol:null, gate:false, justOpened:false, copyText:null, focusGroup:null};
 
 let toastTimer;
@@ -73,13 +86,13 @@ function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg
 /* ============================================================
    저장소: local / cloud(Firestore) 공통 인터페이스
    ============================================================ */
-const store = {cards:[], groups:[], status: CFG ? "connecting" : "local"};
+const store = {cards:[], groups:[], people:[], status: CFG ? "connecting" : "local"};
 let api = null;
 
 function localApi(){
   const KEY = "fx-room-" + ROOM;
-  const read = () => { const d=LS.get(KEY,{cards:[],groups:[]}); store.cards=d.cards||[]; store.groups=d.groups||[]; };
-  const write = () => { LS.set(KEY,{cards:store.cards,groups:store.groups}); render(); };
+  const read = () => { const d=LS.get(KEY,{cards:[],groups:[],people:[]}); store.cards=d.cards||[]; store.groups=d.groups||[]; store.people=d.people||[]; };
+  const write = () => { LS.set(KEY,{cards:store.cards,groups:store.groups,people:store.people}); render(); };
   read();
   window.addEventListener("storage", e => { if(e.key===KEY){ read(); render(); } });
   const card = id => store.cards.find(c=>c.id===id) || {};
@@ -91,7 +104,8 @@ function localApi(){
     toggleLike(id){ const c=card(id); const l=c.likedBy||(c.likedBy=[]); const i=l.indexOf(me.id); if(i<0) l.push(me.id); else l.splice(i,1); write(); },
     addGroup(g){ store.groups.push(g); write(); },
     updateGroup(id,p){ Object.assign(store.groups.find(g=>g.id===id)||{},p); write(); },
-    deleteGroup(id){ store.cards.forEach(c=>{ if(c.groupId===id) c.groupId=null; }); store.groups=store.groups.filter(g=>g.id!==id); write(); }
+    deleteGroup(id){ store.cards.forEach(c=>{ if(c.groupId===id) c.groupId=null; }); store.groups=store.groups.filter(g=>g.id!==id); write(); },
+    joinPerson(p){ const x=store.people.find(y=>y.id===p.id); if(x) Object.assign(x,p); else store.people.push(p); write(); }
   };
 }
 
@@ -99,12 +113,13 @@ function cloudApi(){
   firebase.initializeApp(CFG);
   const db = firebase.firestore(), FV = firebase.firestore.FieldValue;
   const room = db.collection("rooms").doc(ROOM);
-  const C = room.collection("cards"), G = room.collection("groups");
+  const C = room.collection("cards"), G = room.collection("groups"), P = room.collection("people");
   const fail = e => { console.error(e); toast("저장하지 못했어요. 인터넷 연결을 확인해주세요"); };
   const seen = {c:false, g:false};
   const onErr = e => { console.error(e); store.status="error"; render(); };
   C.onSnapshot(s => { store.cards=s.docs.map(d=>({...d.data(), id:d.id})); seen.c=true; if(seen.g) store.status="live"; render(); }, onErr);
   G.onSnapshot(s => { store.groups=s.docs.map(d=>({...d.data(), id:d.id})); seen.g=true; if(seen.c) store.status="live"; render(); }, onErr);
+  P.onSnapshot(s => { store.people=s.docs.map(d=>({...d.data(), id:d.id})); render(); }, e => console.warn("참여자 목록을 불러오지 못했어요(규칙 확인 필요)", e));
   return {
     addCard(c){ C.doc(c.id).set(c).catch(fail); },
     updateCard(id,p){ C.doc(id).update(p).catch(fail); },
@@ -114,7 +129,8 @@ function cloudApi(){
       C.doc(id).update({likedBy: liked ? FV.arrayRemove(me.id) : FV.arrayUnion(me.id)}).catch(fail); },
     addGroup(g){ G.doc(g.id).set(g).catch(fail); },
     updateGroup(id,p){ G.doc(id).update(p).catch(fail); },
-    deleteGroup(id){ const b=db.batch(); store.cards.filter(c=>c.groupId===id).forEach(c=>b.update(C.doc(c.id),{groupId:null})); b.delete(G.doc(id)); b.commit().catch(fail); }
+    deleteGroup(id){ const b=db.batch(); store.cards.filter(c=>c.groupId===id).forEach(c=>b.update(C.doc(c.id),{groupId:null})); b.delete(G.doc(id)); b.commit().catch(fail); },
+    joinPerson(p){ P.doc(p.id).set(p,{merge:true}).catch(e=>console.warn("참여자 등록 실패(규칙 확인 필요)", e)); }
   };
 }
 
@@ -131,6 +147,7 @@ async function boot(){
   } else {
     api = localApi();
   }
+  if(me.name) api.joinPerson({id:me.id, name:me.name, admin:isAdmin, seen:Date.now()});
   render();
 }
 
@@ -139,6 +156,32 @@ const byLikes = (a,b) => likes(b)-likes(a) || (a.created||0)-(b.created||0);
 const cardsOf = (col, gid) => store.cards.filter(c=>c.col===col && (c.groupId||null)===(gid||null)).sort(byLikes);
 const groupLikes = g => store.cards.filter(c=>c.groupId===g.id).reduce((s,c)=>s+likes(c),0);
 const groupsOf = col => store.groups.filter(g=>g.col===col).sort((a,b)=>groupLikes(b)-groupLikes(a) || (a.created||0)-(b.created||0));
+
+/* ---------- 투표로 넘어가는 조건: G·I·T 각각 1개 이상 (관리자는 예외) ---------- */
+const VOTE_STEP = 3;
+const myCount = col => store.cards.filter(c=>c.col===col && c.authorId===me.id).length;
+const missing = () => ["G","I","T"].filter(k=>!myCount(k));
+const canVote = () => isAdmin || !missing().length;
+const dataReady = () => api && store.status!=="connecting";
+const needMsg = () => `${missing().map(k=>COLS[k].name).join(", ")}를 1개 이상 써야 투표로 넘어갈 수 있어요`;
+
+/* ---------- 참여 현황(관리자) ---------- */
+function participants(){
+  const m=new Map();
+  store.people.filter(p=>!p.admin).forEach(p=>m.set(p.id,{id:p.id,name:p.name,G:0,I:0,T:0}));
+  store.cards.forEach(c=>{ if(!m.has(c.authorId)) m.set(c.authorId,{id:c.authorId,name:c.author||"이름 없음",G:0,I:0,T:0}); const x=m.get(c.authorId); x[c.col]++; if(c.author) x.name=c.author; });
+  return [...m.values()].map(x=>({...x, done:x.G>0&&x.I>0&&x.T>0, total:x.G+x.I+x.T}))
+    .sort((a,b)=>(a.done-b.done) || (a.total-b.total) || a.name.localeCompare(b.name,"ko"));
+}
+function participationHTML(){
+  const ps=participants(), done=ps.filter(p=>p.done).length, none=ps.filter(p=>!p.total).length;
+  return `<details class="ref adm-panel" id="fold-adm" data-fold="adm" ${ui.fold.adm!==false?"open":""}>
+    <summary><span class="eyebrow">관리자 · 참여 현황</span><span class="adm-sum">참여 <b>${ps.length}</b>명 · 완료 <b>${done}</b>명 · 아직 안 씀 <b>${none}</b>명</span><span class="muted ref-tog"></span></summary>
+    ${ps.length?`<div class="adm-table-wrap"><table class="adm-table"><thead><tr><th>이름</th><th>G</th><th>I</th><th>T</th><th>상태</th></tr></thead><tbody>
+      ${ps.map(p=>`<tr class="${p.done?"ok":p.total?"mid":"no"}"><td>${esc(p.name)}${p.id===me.id?" (나)":""}</td>${["G","I","T"].map(k=>`<td class="mono ${p[k]?"":"zero"}">${p[k]}</td>`).join("")}<td><span class="adm-st">${p.done?"완료":p.total?"작성 중":"아직 안 씀"}</span></td></tr>`).join("")}
+    </tbody></table></div>`:`<p class="muted" style="font-size:13.5px">아직 들어온 사람이 없어요.</p>`}
+  </details>`;
+}
 
 /* ============================================================
    화면
@@ -153,6 +196,7 @@ function render(){
     app.innerHTML = gateHTML();
   } else {
     prefs.step = Math.min(Math.max(0,prefs.step||0), STEPS.length-1);
+    if(prefs.step>=VOTE_STEP && dataReady() && !canVote()) prefs.step = VOTE_STEP-1;
     const step = STEPS[prefs.step].k;
     const body = {intro:introHTML, learn:learnHTML, write:writeHTML, vote:voteHTML, final:finalHTML}[step]();
     app.innerHTML = topHTML() + `<main class="stage" data-step="${step}">${body}</main>` + navHTML();
@@ -188,11 +232,11 @@ function topHTML(){
   return `<header class="top"><div class="top-row">
     <div class="brand"><span class="wordmark">Futurix</span><b>일잘법 GIT 회고${ROOM!=="main"?` · ${esc(ROOM)}`:""}</b></div>
     ${statusPill()}
-    <div class="team-sel"><span class="muted">작성자</span><b>${esc(me.name)}</b></div>
+    <div class="team-sel">${isAdmin?`<span class="adm-badge">관리자</span>`:""}<span class="muted">작성자</span><b>${esc(me.name)}</b>${isAdmin?`<button class="btn sm ghost" data-act="adminOff">관리자 해제</button>`:""}</div>
     <button class="btn sm" data-act="copy">결과 복사</button>
   </div>
   <ol class="stepper" aria-label="회고 단계">
-    ${STEPS.map((s,i)=>`<li><button data-act="go" data-i="${i}" ${i===prefs.step?'aria-current="step"':""} class="${i<prefs.step?"past":""}"><span class="n">${i+1}</span><span class="lbl">${s.lbl}</span></button></li>`).join("")}
+    ${STEPS.map((s,i)=>{ const locked=i>=VOTE_STEP&&!canVote(); return `<li><button data-act="go" data-i="${i}" ${i===prefs.step?'aria-current="step"':""} class="${i<prefs.step?"past":""}${locked?" locked":""}" ${locked?`title="${esc(needMsg())}"`:""}><span class="n">${locked?"🔒":i+1}</span><span class="lbl">${s.lbl}</span></button></li>`; }).join("")}
   </ol></header>`;
 }
 function navHTML(){
@@ -200,7 +244,7 @@ function navHTML(){
   return `<nav class="navbar" aria-label="단계 이동"><div class="navbar-in">
     <span class="where"><span class="mono">${String(i+1).padStart(2,"0")}</span><i class="rule" aria-hidden="true"></i>${STEPS[i].lbl}<span class="of mono">/ ${String(STEPS.length).padStart(2,"0")}</span></span>
     ${prev?`<button class="btn" data-act="go" data-i="${i-1}">← ${prev.lbl}</button>`:""}
-    ${next?`<button class="btn primary nav-next" data-act="go" data-i="${i+1}">다음: ${next.lbl} <span aria-hidden="true">→</span></button>`:`<button class="btn primary" data-act="copy">결과 복사</button>`}
+    ${next?`<button class="btn primary nav-next${i+1>=VOTE_STEP&&!canVote()?" is-locked":""}" data-act="go" data-i="${i+1}">${i+1>=VOTE_STEP&&!canVote()?"🔒 ":""}다음: ${next.lbl} <span aria-hidden="true">→</span></button>`:`<button class="btn primary" data-act="copy">결과 복사</button>`}
   </div></nav>`;
 }
 function head(eyebrow, title, desc, how){
@@ -255,7 +299,9 @@ function writeHTML(){
   return head("3단계 · GIT","일잘법을 써보니 어땠나요?","", "일잘법 <b>전체</b>를 떠올리며 G·I·T 칸에 한 카드에 하나씩 적어요. 특정 문장도, 전반적인 이야기도 좋아요.") +
   `<details class="ref" id="fold-git" data-fold="git" ${ui.fold.git?"open":""}><summary><span class="eyebrow">GIT란? · Good · Improvement · Try</span><span class="muted ref-tog"></span></summary>
     <p class="muted" style="margin:-2px 0 12px;font-size:14px">세 가지 질문으로 일잘법을 돌아봐요. 각 칸이 무엇을 뜻하는지 확인한 뒤 아래에 적어주세요.</p>${gitCards()}</details>
-  <div class="board">${["G","I","T"].map(col=>{ const C=COLS[col]; const mine=store.cards.filter(c=>c.col===col&&c.authorId===me.id).sort((a,b)=>(b.created||0)-(a.created||0));
+  ${isAdmin?participationHTML():""}
+  ${progressHTML()}
+  <div class="board">${["G","I","T"].map(col=>{ const C=COLS[col]; const mine=store.cards.filter(c=>c.col===col&&(isAdmin||c.authorId===me.id)).sort((a,b)=>(b.created||0)-(a.created||0));
     return `<div class="col" data-col="${col}">
       <div class="col-head"><div class="col-title"><span class="col-letter">${col}</span><h3>${C.name} · ${C.ko}</h3></div><p class="col-q">${C.q}</p></div>
       <div class="col-tools">
@@ -264,7 +310,17 @@ function writeHTML(){
       </div>
       <div class="col-body"><div class="dropzone">${mine.length?mine.map(c=>cardHTML(c,"write")).join(""):`<p class="empty">아직 쓴 의견이 없어요</p>`}</div></div>
     </div>`; }).join("")}</div>
-  <p class="muted" style="margin-top:14px;font-size:13.5px">다른 사람의 의견 <b class="mono">${others}</b>개는 4단계 투표에서 함께 봐요.</p>`;
+  <p class="muted" style="margin-top:14px;font-size:13.5px">${isAdmin?`관리자 화면이라 모든 참여자의 의견이 보여요. (다른 사람 의견 <b class="mono">${others}</b>개)`:`다른 사람의 의견 <b class="mono">${others}</b>개는 4단계 투표에서 함께 봐요.`}</p>`;
+}
+function progressHTML(){
+  const miss=missing();
+  return `<div class="git-prog${miss.length?"":" done"}">
+    <span class="eyebrow">내 GIT</span>
+    <div class="gp-chks">${["G","I","T"].map(k=>`<span class="gp-chk${myCount(k)?" ok":""}" data-col="${k}">${myCount(k)?"✓":"○"} ${COLS[k].name} <b class="mono">${myCount(k)}</b></span>`).join("")}</div>
+    <p>${miss.length
+      ? (isAdmin?"관리자는 쓰지 않아도 투표로 넘어갈 수 있어요.":`${miss.map(k=>COLS[k].name).join(", ")}를 1개 이상 쓰면 투표로 넘어갈 수 있어요.`)
+      : `모두 채웠어요! <button class="btn sm primary" data-act="go" data-i="${VOTE_STEP}">투표로 가기 →</button>`}</p>
+  </div>`;
 }
 
 /* 4. 투표 — 모두의 의견 */
@@ -308,11 +364,11 @@ function cardHTML(c, phase, rank){
   return `<article class="card${c.confirmed?" confirmed":""}" ${vote?'draggable="true"':""} data-card="${c.id}">
     ${c.confirmed?`<span class="conf-badge">✓ 최종 확정</span>`:""}
     <p class="card-text">${vote&&n>0?`<span class="rank">#${rank}</span>`:""}${esc(c.text)}</p>
-    ${vote&&c.author?`<div class="card-meta"><span>— ${esc(c.author)}${mine?" (나)":""}</span></div>`:""}
+    ${(vote||(isAdmin&&!mine))&&c.author?`<div class="card-meta"><span>— ${esc(c.author)}${mine?" (나)":""}</span></div>`:""}
     <div class="card-foot">
       ${vote?`<button class="like ${liked?"hot":""}" data-act="like" data-id="${c.id}" aria-pressed="${liked}" aria-label="좋아요 ${n}개. ${liked?"누르면 내 좋아요 취소":"누르면 좋아요"}" title="${liked?"내가 누른 좋아요 · 다시 누르면 취소":"한 의견에 한 번만 누를 수 있어요"}">${thumb}<span class="mono">${n}</span></button>
         <button class="conf-btn" data-act="confirm" data-id="${c.id}" aria-pressed="${!!c.confirmed}">${c.confirmed?"확정 취소":"최종 확정"}</button>`:""}
-      ${mine?`<button class="ibtn" data-act="editCard" data-id="${c.id}">수정</button><button class="ibtn" data-act="delCard" data-id="${c.id}">삭제</button>`:""}
+      ${mine?`<button class="ibtn" data-act="editCard" data-id="${c.id}">수정</button><button class="ibtn" data-act="delCard" data-id="${c.id}">삭제</button>`:isAdmin?`<button class="ibtn adm-del" data-act="delCard" data-id="${c.id}">삭제(관리자)</button>`:""}
       ${vote?`<select data-chg="cardGroup" data-id="${c.id}" aria-label="그룹 선택" id="cg-${c.id}"><option value="">그룹 없음</option>${groups.map(g=>`<option value="${g.id}" ${g.id===c.groupId?"selected":""}>${esc(g.name)}</option>`).join("")}</select>`:""}
     </div></article>`;
 }
@@ -320,7 +376,7 @@ function cardHTML(c, phase, rank){
 /* 5. 최종 확정 — 확정된 의견만 모아 보기 */
 function finalHTML(){
   const conf=store.cards.filter(c=>c.confirmed);
-  const people=new Set(store.cards.map(c=>c.authorId)).size;
+  const people=participants().length;
   const gname=id=>store.groups.find(g=>g.id===id)?.name;
   return head("5단계 · 최종 확정","우리가 최종 확정한 의견","",
     "투표에서 <b>‘최종 확정’</b>한 의견만 모았어요. 좋아요가 많은 순서예요. 확정을 바꾸려면 4단계 투표에서 ‘확정 취소’를 누르면 바로 반영돼요.") +
@@ -329,7 +385,7 @@ function finalHTML(){
       <span><b class="mono">${store.cards.length}</b>전체 의견</span>
       <span><b class="mono">${people}</b>참여 인원</span>
       <button class="btn primary" data-act="copy" style="margin-left:auto">결과 복사</button>
-    </div>` +
+    </div>` + (isAdmin?participationHTML():"") +
   (conf.length ? `<div class="fin-cols">${["G","I","T"].map(col=>{ const C=COLS[col], list=conf.filter(c=>c.col===col).sort(byLikes);
       return `<section class="fin-col" data-col="${col}">
         <h2><span class="L">${col}</span>${C.name}<small>${C.ko}</small><span class="mono muted">${list.length}</span></h2>
@@ -361,9 +417,9 @@ function exportText(){
    동작
    ============================================================ */
 const findCard = id => store.cards.find(c=>c.id===id);
-function arm(btn, fn){
+function arm(btn, fn, label){
   if(btn.dataset.armed){ fn(); return; }
-  btn.dataset.armed="1"; const old=btn.textContent; btn.textContent="한 번 더 누르면 삭제"; btn.classList.add("armed");
+  btn.dataset.armed="1"; const old=btn.textContent; btn.textContent=label||(btn.dataset.act==="adminOff"?"한 번 더 누르면 해제":"한 번 더 누르면 삭제"); btn.classList.add("armed");
   setTimeout(()=>{ if(btn.isConnected){ delete btn.dataset.armed; btn.textContent=old; btn.classList.remove("armed"); } },3000);
 }
 function need(){ if(!api){ toast("아직 불러오는 중이에요"); return false; } return true; }
@@ -372,13 +428,17 @@ function enterName(n){
   if(!n){ toast("이름을 입력해주세요"); document.getElementById("gate-name")?.focus(); return; }
   const changed = me.name && me.name!==n;
   me.name=n; LS.set("fx-me",me);
+  if(api) api.joinPerson({id:me.id, name:n, admin:isAdmin, seen:Date.now()});
   if(changed && api) api.updateCards(store.cards.filter(c=>c.authorId===me.id).map(c=>c.id),{author:n});
   ui.gate=false; delete ui.draft["gate-name"];
   render(); window.scrollTo({top:0}); toast(`${n}님, 환영해요`);
 }
 
 const H = {
-  go(t){ prefs.step=Number(t.dataset.i); savePrefs(); ui.editCard=null; ui.copyText=null; render(); window.scrollTo({top:0}); },
+  go(t){ const i=Number(t.dataset.i);
+    if(i>=VOTE_STEP && !canVote()){ toast(needMsg()); if(prefs.step!==VOTE_STEP-1){ prefs.step=VOTE_STEP-1; savePrefs(); render(); window.scrollTo({top:0}); } return; }
+    prefs.step=i; savePrefs(); ui.editCard=null; ui.copyText=null; render(); window.scrollTo({top:0}); },
+  adminOff(t){ arm(t,()=>{ isAdmin=false; LS.set("fx-admin",""); render(); toast("관리자 모드를 해제했어요"); }); },
   openGate(){ ui.gate=true; render(); window.scrollTo({top:0}); },
   closeGate(){ ui.gate=false; render(); },
   addCard(t){ if(!need()) return; const col=t.dataset.col, k="new-"+col, text=(ui.draft[k]||"").trim().slice(0,500);
@@ -429,5 +489,5 @@ document.addEventListener("drop", e=>{ if(!dragId||!api) return; const z=e.targe
 });
 
 render();
-boot();
+checkAdminParam().then(()=>{ render(); boot(); });
 })();
