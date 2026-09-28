@@ -394,3 +394,19 @@ body{font-weight:400;letter-spacing:-.005em}
 .sync-err{color:#F07A6A;border-color:color-mix(in srgb,#F07A6A 45%,transparent)}
 .team-sel b{font-size:14px}
 @media (max-width:720px){ .brand b{display:none} .sync{font-size:11px} }
+
+/* 2단계 · 일잘법 알기 */
+.motto-big{margin:0 0 18px;padding:22px 24px;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:var(--r);display:grid;gap:8px}
+.motto-big p{font-size:clamp(18px,2.2vw,24px);font-weight:700;letter-spacing:-.02em;line-height:1.45}
+.cat-intro{display:flex;flex-wrap:wrap;gap:8px 18px;margin-bottom:14px;font-size:13.5px;color:var(--muted)}
+.cat-intro b{font-family:var(--mono);color:var(--brand);margin-right:4px}
+/* 3단계 · 접는 GIT 설명 */
+details.ref{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:4px 18px 16px;margin-bottom:14px}
+details.ref:not([open]){padding-bottom:4px}
+details.ref summary{padding:12px 0}
+.gits.compact{gap:12px}
+.gits.compact .git{padding:16px 18px;gap:8px}
+.gits.compact .git .L{font-size:30px}
+.gits.compact .git h3{font-size:17px}
+.gits.compact .git .q{font-size:15px}
+.gits.compact .git p{font-size:13.5px}

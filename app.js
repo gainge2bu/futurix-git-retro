@@ -44,7 +44,7 @@ const COLS = {
 };
 const STEPS = [
   {k:"intro", lbl:"시작하기"},
-  {k:"learn", lbl:"GIT와 일잘법"},
+  {k:"learn", lbl:"일잘법 알기"},
   {k:"write", lbl:"의견 쓰기"},
   {k:"vote",  lbl:"투표"}
 ];
@@ -64,7 +64,7 @@ const me = LS.get("fx-me", null) || {id:"u_"+uid(), name:""};
 LS.set("fx-me", me);
 const prefs = Object.assign({step:0}, LS.get("fx-prefs", {}));
 const savePrefs = () => LS.set("fx-prefs", prefs);
-const ui = {draft:{}, editCard:null, voteCol:null, gate:false, justOpened:false, copyText:null, focusGroup:null};
+const ui = {fold: Object.assign({git:true, ref:false}, LS.get("fx-fold", {})), draft:{}, editCard:null, voteCol:null, gate:false, justOpened:false, copyText:null, focusGroup:null};
 
 let toastTimer;
 function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.hidden=true,2400); }
@@ -223,10 +223,10 @@ function introHTML(){
     </div>
     <span class="hx-side" aria-hidden="true">GOOD · IMPROVEMENT · TRY</span>
     <div class="howto">
-      <span class="eyebrow">사용 방법 · 약 25분</span>
+      <span class="eyebrow">사용 방법</span>
       <ol>
-        <li><div><b>GIT와 일잘법 확인</b><span>Good·Improvement·Try가 뭔지 알고, 돌아볼 일잘법 전체를 함께 읽어요.</span></div></li>
-        <li><div><b>의견 쓰기</b><span>일잘법을 써보며 느낀 점을 G·I·T 칸에 한 장에 하나씩 적어요. 내 의견은 언제든 수정·삭제할 수 있어요.</span></div></li>
+        <li><div><b>일잘법 알기</b><span>오늘 돌아볼 퓨처릭스의 일하는 9가지 방법을 함께 읽어요.</span></div></li>
+        <li><div><b>의견 쓰기</b><span>GIT(Good·Improvement·Try)가 무엇인지 확인하고, 일잘법을 써보며 느낀 점을 한 장에 하나씩 적어요. 내 의견은 언제든 수정·삭제할 수 있어요.</span></div></li>
         <li><div><b>투표</b><span>모두의 의견을 함께 보며 비슷한 것끼리 묶고, 좋아요를 누른 뒤 채택할 의견을 최종 확정해요.</span></div></li>
       </ol>
       <p class="who">작성자 <b>${esc(me.name)}</b></p>
@@ -234,21 +234,27 @@ function introHTML(){
   </div>`;
 }
 
-/* 2. GIT와 일잘법 */
+/* 2. 일잘법 알기 */
 function learnHTML(){
-  return head("2단계 · 알고 시작하기","GIT 회고란?","세 가지 질문으로 일잘법을 돌아봅니다. 각 칸이 무엇을 뜻하는지 먼저 확인하세요.") +
-  `<div class="gits">${["G","I","T"].map(k=>{ const C=COLS[k]; return `<div class="git" data-col="${k}">
+  return head("2단계 · 일잘법 알기","퓨처릭스가 일하는 9가지 방법","오늘 함께 돌아볼 대상이에요. 우리가 함께 정한 일하는 방법을 먼저 천천히 읽어봐요.") +
+  `<blockquote class="motto-big"><span class="eyebrow">FUTURIX WAY</span><p>${MOTTO}</p></blockquote>
+  <div class="cat-intro">${CATS.map(c=>`<span><b>${c.k}</b> ${c.name} · ${c.ko}</span>`).join("")}</div>
+  ${habitsGrid()}
+  <p class="muted" style="margin-top:16px;font-size:14px">다음 단계에서 이 9가지 방법을 실제로 써보며 느낀 점을 Good · Improvement · Try로 적어요.</p>`;
+}
+function gitCards(){
+  return `<div class="gits compact">${["G","I","T"].map(k=>{ const C=COLS[k]; return `<div class="git" data-col="${k}">
       <span class="L">${k}</span><h3>${C.name}<small>${C.ko}</small></h3>
-      <p class="q">${C.q}</p><p>${C.desc}</p><p class="ex">예) ${esc(C.ex)}</p></div>`; }).join("")}</div>
-  <div class="habits-head"><h2>돌아볼 대상 · 일하는 9가지 방법</h2><p class="muted" style="font-size:14px">${MOTTO}</p></div>
-  ${habitsGrid()}`;
+      <p class="q">${C.q}</p><p>${C.desc}</p><p class="ex">예) ${esc(C.ex)}</p></div>`; }).join("")}</div>`;
 }
 
 /* 3. 의견 쓰기 — 내 의견만 보임 */
 function writeHTML(){
   const others = store.cards.filter(c=>c.authorId!==me.id).length;
   return head("3단계 · 의견 쓰기","일잘법을 써보니 어땠나요?","", "일잘법 <b>전체</b>를 떠올리며 G·I·T 칸에 한 카드에 하나씩 적어요. 특정 문장도, 전반적인 이야기도 좋아요.") +
-  `<details class="ref" id="ref" open><summary><span class="eyebrow">돌아볼 대상 · 일하는 9가지 방법</span><span class="muted ref-tog"></span></summary>${habitsGrid()}</details>
+  `<details class="ref" id="fold-git" data-fold="git" ${ui.fold.git?"open":""}><summary><span class="eyebrow">GIT란? · Good · Improvement · Try</span><span class="muted ref-tog"></span></summary>
+    <p class="muted" style="margin:-2px 0 12px;font-size:14px">세 가지 질문으로 일잘법을 돌아봐요. 각 칸이 무엇을 뜻하는지 확인한 뒤 아래에 적어주세요.</p>${gitCards()}</details>
+  <details class="ref" id="fold-ref" data-fold="ref" ${ui.fold.ref?"open":""}><summary><span class="eyebrow">돌아볼 대상 · 일하는 9가지 방법</span><span class="muted ref-tog"></span></summary>${habitsGrid()}</details>
   <div class="board">${["G","I","T"].map(col=>{ const C=COLS[col]; const mine=store.cards.filter(c=>c.col===col&&c.authorId===me.id).sort((a,b)=>(b.created||0)-(a.created||0));
     return `<div class="col" data-col="${col}">
       <div class="col-head"><div class="col-title"><span class="col-letter">${col}</span><h3>${C.name} · ${C.ko}</h3></div><p class="col-q">${C.q}</p></div>
@@ -371,6 +377,7 @@ const H = {
 };
 
 document.addEventListener("click", e=>{ const t=e.target.closest("[data-act]"); if(!t) return; const f=H[t.dataset.act]; if(f){ e.preventDefault(); f(t); } });
+document.addEventListener("toggle", e=>{ const k=e.target.dataset?.fold; if(k){ ui.fold[k]=e.target.open; LS.set("fx-fold", ui.fold); } }, true);
 document.addEventListener("input", e=>{ const k=e.target.dataset?.draft; if(k) ui.draft[k]=e.target.value; });
 document.addEventListener("change", e=>{ const t=e.target, k=t.dataset?.chg; if(!k||!api) return;
   if(k==="groupName"){ const v=t.value.trim().slice(0,40); if(v) api.updateGroup(t.dataset.id,{name:v}); }
