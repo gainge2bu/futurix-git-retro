@@ -59,6 +59,7 @@ const LS = {
   get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } },
   set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
 };
+const TOUCH = window.matchMedia && matchMedia("(pointer:coarse)").matches;
 const likes = c => (c.likedBy||[]).length;
 const thumb = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v11H3V10h4Zm0 0 4-8a3 3 0 0 1 3 3v4h5.5a2 2 0 0 1 2 2.3l-1.4 8A2 2 0 0 1 18.1 21H7"/></svg>';
 
@@ -305,7 +306,7 @@ function writeHTML(){
     return `<div class="col" data-col="${col}">
       <div class="col-head"><div class="col-title"><span class="col-letter">${col}</span><h3>${C.name} · ${C.ko}</h3></div><p class="col-q">${C.q}</p></div>
       <div class="col-tools">
-        <textarea class="field" id="new-${col}" data-draft="new-${col}" rows="2" maxlength="500" placeholder="${C.ph} (Ctrl+Enter로 올리기)">${d("new-"+col)}</textarea>
+        <textarea class="field" id="new-${col}" data-draft="new-${col}" rows="2" maxlength="500" placeholder="${C.ph}${TOUCH?"":" (Ctrl+Enter로 올리기)"}">${d("new-"+col)}</textarea>
         <div class="addrow"><button class="btn primary sm" data-act="addCard" data-col="${col}" style="margin-left:auto;flex:none">올리기</button></div>
       </div>
       <div class="col-body"><div class="dropzone">${mine.length?mine.map(c=>cardHTML(c,"write")).join(""):`<p class="empty">아직 쓴 의견이 없어요</p>`}</div></div>
@@ -327,7 +328,7 @@ function progressHTML(){
 function voteHTML(){
   const col=ui.voteCol;
   return head("4단계 · 투표","공감되는 의견에 투표해요","",
-    "G · I · T 중 하나를 누르면 모두의 의견이 펼쳐져요. 비슷한 의견은 카드를 끌어 그룹으로 묶고, 공감되는 카드에 좋아요를 눌러요. 좋아요는 한 의견에 한 번만 누를 수 있고, 다시 누르면 취소돼요.<br>좋아요가 많은 순으로 자동 정렬되고, 채택할 의견에는 <b>‘최종 확정’</b>을 눌러요.") +
+    "G · I · T 중 하나를 누르면 모두의 의견이 펼쳐져요. 비슷한 의견은 카드를 끌어 그룹으로 묶고, 공감되는 카드에 좋아요를 눌러요. 좋아요는 한 의견에 한 번만 누를 수 있고, 다시 누르면 취소돼요.<br>좋아요가 많은 순으로 자동 정렬되고, 채택할 의견에는 <b>‘최종 확정’</b>을 눌러요."+(TOUCH?"<br>휴대폰에서는 카드 오른쪽 아래 <b>‘그룹 없음’</b> 메뉴를 눌러 그룹으로 옮겨요.":"")) +
   `<div class="gps" role="group" aria-label="볼 항목">${["G","I","T"].map(k=>{ const C=COLS[k], all=store.cards.filter(c=>c.col===k), lk=all.reduce((s,c)=>s+likes(c),0);
       return `<button class="gp" data-col="${k}" data-act="voteCol" aria-pressed="${col===k}"><span class="L">${k}</span><span class="gp-t"><b>${C.name}</b><small>${C.ko}</small></span><span class="gp-n mono">${all.length}<small>의견</small> · ♥${lk}</span></button>`; }).join("")}</div>`
   + (col ? voteBoard(col) : `<p class="vote-empty">위에서 G · I · T 중 하나를 눌러 의견을 펼쳐보세요.</p>`);

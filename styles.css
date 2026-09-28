@@ -466,3 +466,24 @@ details.ref summary{padding:12px 0}
 .adm-table tr.mid .adm-st{background:var(--imp-bg);color:var(--imp)}
 .adm-table tr.no .adm-st{background:color-mix(in srgb,#F07A6A 16%,transparent);color:#F07A6A}
 .adm-del{color:#F07A6A}
+
+/* 모바일 다듬기 */
+details.ref .ref-tog{white-space:nowrap;flex:none}
+details.ref summary{gap:12px}
+@media (max-width:720px){
+  .top-row{flex-wrap:nowrap;gap:8px}
+  .top .team-sel .muted,.top-row > .btn[data-act="copy"]{display:none}
+  .top .team-sel b{max-width:6em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .wordmark{font-size:17px}
+  details.ref summary .eyebrow{letter-spacing:.12em;font-size:11px;gap:10px}
+  details.ref summary .eyebrow::before{width:18px}
+  .adm-sum{margin-left:0;flex-basis:100%;order:3}
+  .adm-panel summary{flex-wrap:wrap}
+  .card select{max-width:none;margin-left:0}
+}
+.adm-badge{white-space:nowrap}
+@media (max-width:720px){
+  .top .team-sel [data-act="adminOff"]{display:none}
+  .top .team-sel b{max-width:5.5em}
+  .sync{padding:3px 8px}
+}
