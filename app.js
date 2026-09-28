@@ -247,7 +247,7 @@ function learnHTML(){
 /* 3. 의견 쓰기 — 내 의견만 보임 */
 function writeHTML(){
   const others = store.cards.filter(c=>c.authorId!==me.id).length;
-  return head("3단계 · 의견 쓰기","일잘법을 써보니 어땠나요?","", "일잘법 <b>전체</b>를 떠올리며 G·I·T 칸에 한 카드에 하나씩 적어요. 특정 문장 이야기여도, 일잘법 전반에 대한 이야기여도 좋아요.") +
+  return head("3단계 · 의견 쓰기","일잘법을 써보니 어땠나요?","", "일잘법 <b>전체</b>를 떠올리며 G·I·T 칸에 한 카드에 하나씩 적어요. 특정 문장도, 전반적인 이야기도 좋아요.") +
   `<details class="ref" id="ref" open><summary><span class="eyebrow">돌아볼 대상 · 일하는 9가지 방법</span><span class="muted ref-tog"></span></summary>${habitsGrid()}</details>
   <div class="board">${["G","I","T"].map(col=>{ const C=COLS[col]; const mine=store.cards.filter(c=>c.col===col&&c.authorId===me.id).sort((a,b)=>(b.created||0)-(a.created||0));
     return `<div class="col" data-col="${col}">

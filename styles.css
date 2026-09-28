@@ -50,7 +50,8 @@ textarea.field{resize:vertical;min-height:64px}
 
 /* step frame */
 .stage{padding-top:32px}
-.stage-head{display:grid;gap:6px;margin-bottom:22px;max-width:72ch}
+.stage-head{display:grid;gap:6px;margin-bottom:22px}
+.stage-head h1,.stage-head > p:not(.how){max-width:72ch}
 .stage-head h1{font-size:clamp(24px,3.2vw,32px);letter-spacing:-.02em}
 .stage-head p{color:var(--muted);font-size:15.5px}
 .stage-head .how{color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 14px;font-size:14.5px}
