@@ -410,3 +410,25 @@ details.ref summary{padding:12px 0}
 .gits.compact .git h3{font-size:17px}
 .gits.compact .git .q{font-size:15px}
 .gits.compact .git p{font-size:13.5px}
+
+/* 5단계 · 최종 확정 */
+.fin-sum{display:flex;flex-wrap:wrap;gap:10px 28px;align-items:center;padding:16px 20px;background:var(--surface);border:1px solid var(--line);border-top:2px solid var(--brand);border-radius:var(--r);margin-bottom:18px}
+.fin-sum span{display:flex;align-items:baseline;gap:8px;font-size:13.5px;color:var(--muted)}
+.fin-sum b{font-size:26px;color:var(--ink);font-weight:700}
+.fin-sum span:first-child b{color:var(--brand)}
+.fin-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start}
+.fin-col[data-col="G"]{--c:var(--good);--c-bg:var(--good-bg)}
+.fin-col[data-col="I"]{--c:var(--imp);--c-bg:var(--imp-bg)}
+.fin-col[data-col="T"]{--c:var(--try);--c-bg:var(--try-bg)}
+.fin-col{background:var(--surface);border:1px solid var(--line);border-top:2px solid var(--c);border-radius:var(--r);padding:16px}
+.fin-col h2{font-size:17px;display:flex;gap:8px;align-items:baseline;margin-bottom:12px;color:var(--c)}
+.fin-col h2 .L{font-family:var(--mono);font-weight:700;font-size:22px}
+.fin-col h2 small{color:var(--muted);font-size:13px;font-weight:500}
+.fin-col h2 .mono{margin-left:auto;font-size:13px}
+.fin-list{list-style:none;margin:0;padding:0;display:grid;gap:10px;counter-reset:f}
+.fin-list li{counter-increment:f;display:grid;grid-template-columns:24px minmax(0,1fr);gap:4px 10px;padding:12px;background:var(--c-bg);border-radius:var(--r)}
+.fin-list li::before{content:counter(f);grid-row:1/3;font-family:var(--mono);font-weight:700;color:var(--c);font-size:14px;padding-top:1px}
+.fin-list p{font-size:15px;font-weight:500;word-break:keep-all;overflow-wrap:anywhere}
+.fin-meta{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:12.5px;color:var(--muted)}
+.fin-like{color:var(--c);font-weight:700}
+@media (max-width:1040px){ .fin-cols{grid-template-columns:minmax(0,1fr)} }

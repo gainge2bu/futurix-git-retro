@@ -46,7 +46,8 @@ const STEPS = [
   {k:"intro", lbl:"시작하기"},
   {k:"learn", lbl:"퓨처릭스의 일잘법"},
   {k:"write", lbl:"GIT"},
-  {k:"vote",  lbl:"투표"}
+  {k:"vote",  lbl:"투표"},
+  {k:"final", lbl:"최종 확정"}
 ];
 
 /* ---------- helpers ---------- */
@@ -153,7 +154,7 @@ function render(){
   } else {
     prefs.step = Math.min(Math.max(0,prefs.step||0), STEPS.length-1);
     const step = STEPS[prefs.step].k;
-    const body = {intro:introHTML, learn:learnHTML, write:writeHTML, vote:voteHTML}[step]();
+    const body = {intro:introHTML, learn:learnHTML, write:writeHTML, vote:voteHTML, final:finalHTML}[step]();
     app.innerHTML = topHTML() + `<main class="stage" data-step="${step}">${body}</main>` + navHTML();
   }
   if(fid){ const el=document.getElementById(fid); if(el){ if(keep && el.value!==keep.v && el.type!=="checkbox") el.value=keep.v; el.focus({preventScroll:true}); if(keep&&keep.s!=null) try{ el.setSelectionRange(keep.s,keep.e); }catch(e){} } }
@@ -228,6 +229,7 @@ function introHTML(){
         <li><div><b>퓨처릭스의 일잘법</b><span>오늘 돌아볼 퓨처릭스의 일하는 9가지 방법을 함께 읽어요.</span></div></li>
         <li><div><b>GIT</b><span>GIT(Good·Improvement·Try)가 무엇인지 확인하고, 일잘법을 써보며 느낀 점을 한 장에 하나씩 적어요. 내 의견은 언제든 수정·삭제할 수 있어요.</span></div></li>
         <li><div><b>투표</b><span>모두의 의견을 함께 보며 비슷한 것끼리 묶고, 좋아요를 누른 뒤 채택할 의견을 최종 확정해요.</span></div></li>
+        <li><div><b>최종 확정</b><span>최종 확정된 의견만 모아서 한눈에 보고, 결과를 복사해 공유해요.</span></div></li>
       </ol>
     </div>
   </div>`;
@@ -270,11 +272,10 @@ function writeHTML(){
 function voteHTML(){
   const col=ui.voteCol;
   return head("4단계 · 투표","공감되는 의견에 투표해요","",
-    "G · I · T 중 하나를 누르면 모두의 의견이 펼쳐져요. 비슷한 의견은 카드를 끌어 그룹으로 묶고, 공감되는 카드에 좋아요를 눌러요. 좋아요는 한 의견에 한 번만 누를 수 있고, 다시 누르면 취소돼요. 좋아요가 많은 순으로 자동 정렬되고, 채택할 의견에는 <b>‘최종 확정’</b>을 눌러요.") +
+    "G · I · T 중 하나를 누르면 모두의 의견이 펼쳐져요. 비슷한 의견은 카드를 끌어 그룹으로 묶고, 공감되는 카드에 좋아요를 눌러요. 좋아요는 한 의견에 한 번만 누를 수 있고, 다시 누르면 취소돼요.<br>좋아요가 많은 순으로 자동 정렬되고, 채택할 의견에는 <b>‘최종 확정’</b>을 눌러요.") +
   `<div class="gps" role="group" aria-label="볼 항목">${["G","I","T"].map(k=>{ const C=COLS[k], all=store.cards.filter(c=>c.col===k), lk=all.reduce((s,c)=>s+likes(c),0);
       return `<button class="gp" data-col="${k}" data-act="voteCol" aria-pressed="${col===k}"><span class="L">${k}</span><span class="gp-t"><b>${C.name}</b><small>${C.ko}</small></span><span class="gp-n mono">${all.length}<small>의견</small> · ♥${lk}</span></button>`; }).join("")}</div>`
-  + (col ? voteBoard(col) : `<p class="vote-empty">위에서 G · I · T 중 하나를 눌러 의견을 펼쳐보세요.</p>`)
-  + (ui.copyText!=null?`<textarea class="copybox field" id="copybox" readonly aria-label="복사할 결과" style="margin-top:18px">${esc(ui.copyText)}</textarea>`:"");
+  + (col ? voteBoard(col) : `<p class="vote-empty">위에서 G · I · T 중 하나를 눌러 의견을 펼쳐보세요.</p>`);
 }
 function voteBoard(col){
   const groups=groupsOf(col), loose=cardsOf(col,null), all=store.cards.filter(c=>c.col===col);
@@ -315,6 +316,31 @@ function cardHTML(c, phase, rank){
       ${mine?`<button class="ibtn" data-act="editCard" data-id="${c.id}">수정</button><button class="ibtn" data-act="delCard" data-id="${c.id}">삭제</button>`:""}
       ${vote?`<select data-chg="cardGroup" data-id="${c.id}" aria-label="그룹 선택" id="cg-${c.id}"><option value="">그룹 없음</option>${groups.map(g=>`<option value="${g.id}" ${g.id===c.groupId?"selected":""}>${esc(g.name)}</option>`).join("")}</select>`:""}
     </div></article>`;
+}
+
+/* 5. 최종 확정 — 확정된 의견만 모아 보기 */
+function finalHTML(){
+  const conf=store.cards.filter(c=>c.confirmed);
+  const people=new Set(store.cards.map(c=>c.authorId)).size;
+  const gname=id=>store.groups.find(g=>g.id===id)?.name;
+  return head("5단계 · 최종 확정","우리가 최종 확정한 의견","",
+    "투표에서 <b>‘최종 확정’</b>한 의견만 모았어요. 좋아요가 많은 순서예요. 확정을 바꾸려면 4단계 투표에서 ‘확정 취소’를 누르면 바로 반영돼요.") +
+  `<div class="fin-sum">
+      <span><b class="mono">${conf.length}</b>최종 확정</span>
+      <span><b class="mono">${store.cards.length}</b>전체 의견</span>
+      <span><b class="mono">${people}</b>참여 인원</span>
+      <button class="btn primary" data-act="copy" style="margin-left:auto">결과 복사</button>
+    </div>` +
+  (conf.length ? `<div class="fin-cols">${["G","I","T"].map(col=>{ const C=COLS[col], list=conf.filter(c=>c.col===col).sort(byLikes);
+      return `<section class="fin-col" data-col="${col}">
+        <h2><span class="L">${col}</span>${C.name}<small>${C.ko}</small><span class="mono muted">${list.length}</span></h2>
+        ${list.length?`<ol class="fin-list">${list.map(c=>`<li>
+          <p>${esc(c.text)}</p>
+          <div class="fin-meta"><span class="fin-like">♥ ${likes(c)}</span>${gname(c.groupId)?`<span class="chip">${esc(gname(c.groupId))}</span>`:""}${c.author?`<span>— ${esc(c.author)}</span>`:""}</div>
+        </li>`).join("")}</ol>`:`<p class="empty">확정한 ${C.name} 의견이 없어요</p>`}
+      </section>`; }).join("")}</div>`
+    : `<div class="vote-empty"><p>아직 최종 확정한 의견이 없어요.</p><p style="margin-top:6px;font-size:13.5px">4단계 투표에서 채택할 의견에 ‘최종 확정’을 눌러주세요.</p><button class="btn sm" data-act="go" data-i="3" style="margin-top:14px">← 투표로 가기</button></div>`)
+  + (ui.copyText!=null?`<textarea class="copybox field" id="copybox" readonly aria-label="복사할 결과" style="margin-top:18px">${esc(ui.copyText)}</textarea>`:"");
 }
 
 /* ---------- 결과 복사 ---------- */
