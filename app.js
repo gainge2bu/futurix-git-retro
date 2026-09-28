@@ -162,7 +162,7 @@ const groupsOf = col => store.groups.filter(g=>g.col===col).sort((a,b)=>groupLik
 const VOTE_STEP = 3;
 const myCount = col => store.cards.filter(c=>c.col===col && c.authorId===me.id).length;
 const missing = () => ["G","I","T"].filter(k=>!myCount(k));
-const canVote = () => isAdmin || !missing().length;
+const canVote = () => true; /* 잠금 해제: 누구나 투표로 이동 가능 (다시 잠그려면 isAdmin || !missing().length) */
 const dataReady = () => api && store.status!=="connecting";
 const needMsg = () => `${missing().map(k=>COLS[k].name).join(", ")}를 1개 이상 써야 투표로 넘어갈 수 있어요`;
 
@@ -319,7 +319,7 @@ function progressHTML(){
     <span class="eyebrow">내 GIT</span>
     <div class="gp-chks">${["G","I","T"].map(k=>`<span class="gp-chk${myCount(k)?" ok":""}" data-col="${k}">${myCount(k)?"✓":"○"} ${COLS[k].name} <b class="mono">${myCount(k)}</b></span>`).join("")}</div>
     <p>${miss.length
-      ? (isAdmin?"관리자는 쓰지 않아도 투표로 넘어갈 수 있어요.":`${miss.map(k=>COLS[k].name).join(", ")}를 1개 이상 쓰면 투표로 넘어갈 수 있어요.`)
+      ? (miss.length===3?"Good · Improvement · Try를 골고루 적어보세요.":`${miss.map(k=>COLS[k].name).join(", ")}도 떠오르는 게 있다면 적어주세요.`)
       : `모두 채웠어요! <button class="btn sm primary" data-act="go" data-i="${VOTE_STEP}">투표로 가기 →</button>`}</p>
   </div>`;
 }
