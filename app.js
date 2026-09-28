@@ -229,7 +229,6 @@ function introHTML(){
         <li><div><b>의견 쓰기</b><span>GIT(Good·Improvement·Try)가 무엇인지 확인하고, 일잘법을 써보며 느낀 점을 한 장에 하나씩 적어요. 내 의견은 언제든 수정·삭제할 수 있어요.</span></div></li>
         <li><div><b>투표</b><span>모두의 의견을 함께 보며 비슷한 것끼리 묶고, 좋아요를 누른 뒤 채택할 의견을 최종 확정해요.</span></div></li>
       </ol>
-      <p class="who">작성자 <b>${esc(me.name)}</b></p>
     </div>
   </div>`;
 }
