@@ -1,0 +1,33 @@
+rules_version = '2';
+
+// 퓨처릭스 일잘법 GIT 회고 — Firestore 보안 규칙
+// rooms/{방이름}/cards, rooms/{방이름}/groups 만 읽고 쓸 수 있어요.
+// 로그인 없이 쓰는 사내 회고용이라, 주소를 아는 사람은 누구나 참여할 수 있습니다.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /rooms/{room}/cards/{cardId} {
+      allow read: if true;
+      allow create, update: if request.resource.data.col in ['G', 'I', 'T']
+                            && request.resource.data.text is string
+                            && request.resource.data.text.size() > 0
+                            && request.resource.data.text.size() <= 500
+                            && request.resource.data.likedBy is list
+                            && request.resource.data.likedBy.size() <= 500;
+      allow delete: if true;
+    }
+
+    match /rooms/{room}/groups/{groupId} {
+      allow read: if true;
+      allow create, update: if request.resource.data.col in ['G', 'I', 'T']
+                            && request.resource.data.name is string
+                            && request.resource.data.name.size() <= 40;
+      allow delete: if true;
+    }
+
+    // 그 밖의 경로는 모두 막음
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
