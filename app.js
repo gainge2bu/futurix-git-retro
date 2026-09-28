@@ -44,8 +44,8 @@ const COLS = {
 };
 const STEPS = [
   {k:"intro", lbl:"시작하기"},
-  {k:"learn", lbl:"일잘법 알기"},
-  {k:"write", lbl:"의견 쓰기"},
+  {k:"learn", lbl:"퓨처릭스의 일잘법"},
+  {k:"write", lbl:"GIT"},
   {k:"vote",  lbl:"투표"}
 ];
 
@@ -225,8 +225,8 @@ function introHTML(){
     <div class="howto">
       <span class="eyebrow">사용 방법</span>
       <ol>
-        <li><div><b>일잘법 알기</b><span>오늘 돌아볼 퓨처릭스의 일하는 9가지 방법을 함께 읽어요.</span></div></li>
-        <li><div><b>의견 쓰기</b><span>GIT(Good·Improvement·Try)가 무엇인지 확인하고, 일잘법을 써보며 느낀 점을 한 장에 하나씩 적어요. 내 의견은 언제든 수정·삭제할 수 있어요.</span></div></li>
+        <li><div><b>퓨처릭스의 일잘법</b><span>오늘 돌아볼 퓨처릭스의 일하는 9가지 방법을 함께 읽어요.</span></div></li>
+        <li><div><b>GIT</b><span>GIT(Good·Improvement·Try)가 무엇인지 확인하고, 일잘법을 써보며 느낀 점을 한 장에 하나씩 적어요. 내 의견은 언제든 수정·삭제할 수 있어요.</span></div></li>
         <li><div><b>투표</b><span>모두의 의견을 함께 보며 비슷한 것끼리 묶고, 좋아요를 누른 뒤 채택할 의견을 최종 확정해요.</span></div></li>
       </ol>
     </div>
@@ -235,7 +235,7 @@ function introHTML(){
 
 /* 2. 일잘법 알기 */
 function learnHTML(){
-  return head("2단계 · 일잘법 알기","퓨처릭스가 일하는 9가지 방법","오늘 함께 돌아볼 대상이에요. 우리가 함께 정한 일하는 방법을 먼저 천천히 읽어봐요.") +
+  return head("2단계 · 퓨처릭스의 일잘법","퓨처릭스가 일하는 9가지 방법","오늘 함께 돌아볼 대상이에요. 우리가 함께 정한 일하는 방법을 먼저 천천히 읽어봐요.") +
   `<blockquote class="motto-big"><span class="eyebrow">FUTURIX WAY</span><p>${MOTTO}</p></blockquote>
   <div class="cat-intro">${CATS.map(c=>`<span><b>${c.k}</b> ${c.name} · ${c.ko}</span>`).join("")}</div>
   ${habitsGrid()}
@@ -250,7 +250,7 @@ function gitCards(){
 /* 3. 의견 쓰기 — 내 의견만 보임 */
 function writeHTML(){
   const others = store.cards.filter(c=>c.authorId!==me.id).length;
-  return head("3단계 · 의견 쓰기","일잘법을 써보니 어땠나요?","", "일잘법 <b>전체</b>를 떠올리며 G·I·T 칸에 한 카드에 하나씩 적어요. 특정 문장도, 전반적인 이야기도 좋아요.") +
+  return head("3단계 · GIT","일잘법을 써보니 어땠나요?","", "일잘법 <b>전체</b>를 떠올리며 G·I·T 칸에 한 카드에 하나씩 적어요. 특정 문장도, 전반적인 이야기도 좋아요.") +
   `<details class="ref" id="fold-git" data-fold="git" ${ui.fold.git?"open":""}><summary><span class="eyebrow">GIT란? · Good · Improvement · Try</span><span class="muted ref-tog"></span></summary>
     <p class="muted" style="margin:-2px 0 12px;font-size:14px">세 가지 질문으로 일잘법을 돌아봐요. 각 칸이 무엇을 뜻하는지 확인한 뒤 아래에 적어주세요.</p>${gitCards()}</details>
   <details class="ref" id="fold-ref" data-fold="ref" ${ui.fold.ref?"open":""}><summary><span class="eyebrow">돌아볼 대상 · 일하는 9가지 방법</span><span class="muted ref-tog"></span></summary>${habitsGrid()}</details>
